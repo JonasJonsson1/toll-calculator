@@ -1,5 +1,16 @@
 
-public interface Vehicle {
+public class Vehicle {
 
-  public String getType();
+	private VehicleType vehicleType;
+	
+	private Vehicle() {}
+	
+	public Vehicle(VehicleType vehicleType) {
+		this.vehicleType = vehicleType;
+	}
+	
+	public VehicleType getType() {
+		return vehicleType;
+	}
+	
 }
