@@ -12,5 +12,8 @@ public class Vehicle {
 	public VehicleType getType() {
 		return vehicleType;
 	}
-	
+
+	public boolean isTollFree() {
+		return vehicleType.isTollFree();
+	}
 }

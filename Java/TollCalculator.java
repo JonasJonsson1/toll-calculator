@@ -4,15 +4,19 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.time.Period;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -43,39 +47,45 @@ public class TollCalculator {
 	 * @throws IOException
 	 * @throws URISyntaxException
 	 */
-	public int getTollFee(Vehicle vehicle, Date... dates) {
-		Date intervalStart = dates[0];
+	public int getTollFeeForVehicle(Optional<Vehicle> vehicle, LocalDateTime... dates) {
+		if (vehicle.isEmpty() || vehicle.get().isTollFree()) {
+			return 0;
+		}
+		LocalDateTime intervalStart = dates[0];
 		int totalFee = 0;
-		for (Date date : dates) {
-			int nextFee = getTollFee(date, vehicle);
-			int tempFee = getTollFee(intervalStart, vehicle);
-
+		for (LocalDateTime date : dates) {
+			int nextFee = getTollFee(date);
+			int tempFee = getTollFee(intervalStart);
 			TimeUnit timeUnit = TimeUnit.MINUTES;
-			long diffInMillies = date.getTime() - intervalStart.getTime();
-			long minutes = timeUnit.convert(diffInMillies, TimeUnit.MILLISECONDS);
+			ZoneOffset zoneOffset = OffsetDateTime.now(ZoneId.systemDefault()).getOffset();
+			long diffInMillies = date.toEpochSecond(zoneOffset) - intervalStart.toEpochSecond(zoneOffset);
+			long minutes = timeUnit.convert(diffInMillies, TimeUnit.SECONDS);
 
 			if (minutes <= 60) {
-				if (totalFee > 0)
+				if (totalFee > 0) {
 					totalFee -= tempFee;
-				if (nextFee >= tempFee)
+				}
+				if (nextFee >= tempFee) {
 					tempFee = nextFee;
+				}
 				totalFee += tempFee;
 			} else {
 				totalFee += nextFee;
 				intervalStart = date; // This was a bug. Next intervalStart was not set.
 			}
 		}
-		if (totalFee > 60)
+		if (totalFee > 60) {
 			totalFee = 60;
+		}
 		return totalFee;
 	}
 
-	public int getTollFee(final Date date, Vehicle vehicle) {
-		if(isTollFreeDate(date) || isTollFreeVehicle(vehicle)) return 0;
-		Calendar calendar = GregorianCalendar.getInstance();
-		calendar.setTime(date);
-		int hour = calendar.get(Calendar.HOUR_OF_DAY);
-		int minute = calendar.get(Calendar.MINUTE);
+	protected int getTollFee(final LocalDateTime date) {
+		if (isTollFreeDate(date)) {
+			return 0;
+		}
+		int hour = date.getHour();
+		int minute = date.getMinute();
 		LocalTime time = LocalTime.of(hour, minute);
     
 		if (isInRange(LocalTime.of(6, 0), LocalTime.of(6, 29), time)) return 8;
@@ -90,31 +100,23 @@ public class TollCalculator {
 		else return 0;
 	}
 
+	protected boolean isTollFreeDate(LocalDateTime date) {
+		int year = date.getYear();
+		int month = date.getMonthValue();
+		int day = date.getDayOfMonth();
+
+		DayOfWeek dayOfWeek = date.getDayOfWeek();
+		if (dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY)
+			return true;
+
+		return holidays.contains(new Holiday(year, month, day));
+	}
+
 	protected boolean isInRange(LocalTime startTime, LocalTime endTime, LocalTime time) {
 		if (time.isBefore(startTime) || time.isAfter(endTime)) {
 			return false;
 		}
 		return true;
-	}
-
-	protected boolean isTollFreeVehicle(Vehicle vehicle) {
-		if (vehicle == null)
-			return true;
-		return vehicle.getType().isTollFree();
-	}
-  
-	protected boolean isTollFreeDate(Date date) {
-		Calendar calendar = new GregorianCalendar();
-		calendar.setTime(date);
-		int year = calendar.get(Calendar.YEAR);
-		int month = calendar.get(Calendar.MONTH);
-		int day = calendar.get(Calendar.DAY_OF_MONTH);
-
-		int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
-		if (dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.SUNDAY)
-			return true;
-
-		return holidays.contains(new Holiday(year, month, day));
 	}
 
 }
