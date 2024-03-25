@@ -42,10 +42,20 @@ class TollCalculatorTest {
 	@Test
 	public void getTollFeeForVehicleMaxOneFeePerHour() {
 		Vehicle car = new Vehicle(VehicleType.CAR);
-		LocalDateTime date1 = LocalDateTime.of(2024, 1, 10, 8, 0);
-		LocalDateTime date2 = LocalDateTime.of(2024, 1, 10, 8, 30);
+		LocalDateTime date1 = LocalDateTime.of(2024, 1, 10, 8, 0); // 8
+		LocalDateTime date2 = LocalDateTime.of(2024, 1, 10, 8, 30); // 13
 
 		assertEquals(13, testee.getTollFeeForVehicle(Optional.of(car), date1, date2));
+	}
+
+	@Test
+	public void getTollFeeForVehicleMaxOnePerHourAndOneMoreHour() {
+		Vehicle car = new Vehicle(VehicleType.CAR);
+		LocalDateTime date = LocalDateTime.of(2024, 1, 10, 6, 1); // 8
+		LocalDateTime date2 = LocalDateTime.of(2024, 1, 10, 7, 1); // 18
+		LocalDateTime date3 = LocalDateTime.of(2024, 1, 10, 8, 0); // 13
+		
+		assertEquals(31, testee.getTollFeeForVehicle(Optional.of(car), date, date2, date3));
 	}
 
 	@Test
