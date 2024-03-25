@@ -45,33 +45,32 @@ public class TollCalculator {
 		if (vehicle.isEmpty() || vehicle.get().isTollFree()) {
 			return 0;
 		}
-		LocalDateTime intervalStart = dates[0];
-		LocalDateTime intervalEnd = dates[0].plusHours(1);
-		int totalFee = 0;
-
+		Interval interval = new Interval(dates[0], dates[0].plusHours(1));
 		Map<Interval, Integer> intervals = new HashMap<Interval, Integer>();
 		for (int i = 0; i < dates.length; i++) {
 		   int nextFee = getTollFee(dates[i]);
-		   if ((dates[i].isEqual(intervalStart) || dates[i].isAfter(intervalStart)) && (dates[i].isBefore(intervalEnd) || dates[i].isEqual(intervalEnd))) {
-				Interval intervalKey = new Interval(intervalStart, intervalEnd);
-				if (intervals.containsKey(intervalKey)) {
-					Integer fee = intervals.get(intervalKey);
+		   if (interval.isInInterval(dates[i])) {
+				if (intervals.containsKey(interval)) {
+					Integer fee = intervals.get(interval);
 					if (nextFee > fee) {
 						fee = nextFee;
 					}
-					intervals.put(new Interval(intervalStart, intervalEnd), fee);
+					intervals.put(interval, fee);
 				} else {
-					intervals.put(new Interval(intervalStart, intervalEnd), nextFee);
+					intervals.put(interval, nextFee);
 				}
 			} else {
-				intervalStart = dates[i];
-				intervalEnd = dates[i].plusHours(1);
-				intervals.put(new Interval(intervalStart, intervalEnd), nextFee);
+				intervals.put(new Interval(dates[i], dates[i].plusHours(1)), nextFee);
 			}
 		}
 			
-		for (Interval interval : intervals.keySet()) { 
-			totalFee += intervals.get(interval);
+		return calculateTotalFee(intervals);
+	}
+
+	protected int calculateTotalFee(Map<Interval, Integer> intervals) {
+		int totalFee = 0;
+		for (Interval intervalKey : intervals.keySet()) { 
+			totalFee += intervals.get(intervalKey);
 		}
 		
 		if (totalFee > 60) {
@@ -79,7 +78,7 @@ public class TollCalculator {
 		}
 		return totalFee;
 	}
-
+	
 	protected int getTollFee(final LocalDateTime date) {
 		if (isTollFreeDate(date)) {
 			return 0;
@@ -119,44 +118,5 @@ public class TollCalculator {
 		return true;
 	}
 
-	
-	private class Interval {
-		public LocalDateTime start;
-		public LocalDateTime end;
-		public int highest;
-		
-		public Interval(LocalDateTime start, LocalDateTime end) {
-			this.start = start;
-			this.end = end;
-		}
-
-		@Override
-		public int hashCode() {
-			final int prime = 31;
-			int result = 1;
-			result = prime * result + getEnclosingInstance().hashCode();
-			result = prime * result + Objects.hash(end, start);
-			return result;
-		}
-
-		@Override
-		public boolean equals(Object obj) {
-			if (this == obj)
-				return true;
-			if (obj == null)
-				return false;
-			if (getClass() != obj.getClass())
-				return false;
-			Interval other = (Interval) obj;
-			if (!getEnclosingInstance().equals(other.getEnclosingInstance()))
-				return false;
-			return Objects.equals(end, other.end) && Objects.equals(start, other.start);
-		}
-
-		private TollCalculator getEnclosingInstance() {
-			return TollCalculator.this;
-		}
-	}
-	
 }
 
