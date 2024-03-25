@@ -45,26 +45,26 @@ public class TollCalculator {
 		if (vehicle.isEmpty() || vehicle.get().isTollFree()) {
 			return 0;
 		}
-		Interval interval = new Interval(dates[0], dates[0].plusHours(1));
-		Map<Interval, Integer> intervals = new HashMap<Interval, Integer>();
-		for (int i = 0; i < dates.length; i++) {
-		   int nextFee = getTollFee(dates[i]);
-		   if (interval.isInInterval(dates[i])) {
-				if (intervals.containsKey(interval)) {
-					Integer fee = intervals.get(interval);
-					if (nextFee > fee) {
-						fee = nextFee;
+		Interval hourInterval = new Interval(dates[0], dates[0].plusHours(1));
+		Map<Interval, Integer> hourIntervals = new HashMap<Interval, Integer>();
+		for (LocalDateTime date : dates) {
+		   int nextFee = getTollFee(date);
+		   if (hourInterval.isInInterval(date)) {
+				if (hourIntervals.containsKey(hourInterval)) {
+					Integer currentFee = hourIntervals.get(hourInterval);
+					if (nextFee > currentFee) {
+						currentFee = nextFee;
 					}
-					intervals.put(interval, fee);
+					hourIntervals.put(hourInterval, currentFee);
 				} else {
-					intervals.put(interval, nextFee);
+					hourIntervals.put(hourInterval, nextFee);
 				}
 			} else {
-				intervals.put(new Interval(dates[i], dates[i].plusHours(1)), nextFee);
+				hourIntervals.put(new Interval(date, date.plusHours(1)), nextFee);
 			}
 		}
 			
-		return calculateTotalFee(intervals);
+		return calculateTotalFee(hourIntervals);
 	}
 
 	protected int calculateTotalFee(Map<Interval, Integer> intervals) {
